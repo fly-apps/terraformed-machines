@@ -19,6 +19,14 @@ variable domain {
   default = "flyio.global"
 }
 
+variable app_name {
+  default = "js-man-machine"
+}
+
+variable fly_org {
+  default = "RVLZQkpYjPL7yTygyZMRl1PMRQTzkj"
+}
+
 provider "fly" {
   fly_api_token = var.fly_api_token
 }
@@ -29,8 +37,8 @@ provider "dnsimple" {
 }
 
 resource "fly_app" "app" {
-  name = "js-man-machine"
-  org = "RVLZQkpYjPL7yTygyZMRl1PMRQTzkj"
+  name = var.app_name
+  org = var.fly_org
 }
 
 resource "fly_ip" "ip" {
