@@ -2,7 +2,7 @@ terraform {
   required_providers {
     fly = {
       source = "fly-apps/fly"
-      version = "0.0.3"
+      version = "0.0.6"
     }
     dnsimple = {
       source = "dnsimple/dnsimple"
@@ -38,7 +38,7 @@ provider "dnsimple" {
 
 resource "fly_app" "app" {
   name = var.app_name
-  org = var.fly_org
+  orgid = var.fly_org
 }
 
 resource "fly_ip" "ip" {
@@ -70,7 +70,7 @@ resource "dnsimple_zone_record" "root_hostname" {
 }
 
 resource "fly_machine" "nginx" {
-  for_each = toset( ["mad", "syd", "ord"] )
+  for_each = toset( ["mad", "syd", "iad"] )
   app = fly_app.app.name
   name = "nginx-${each.key}"
   region = each.key
