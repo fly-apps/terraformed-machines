@@ -24,9 +24,12 @@ variable app_name {
 }
 
 variable fly_org {
-  default = "RVLZQkpYjPL7yTygyZMRl1PMRQTzkj"
+  default = "fly-ephemeral"
 }
 
+variable regions {
+  default = ["mad", "syd", "iad"]
+}
 provider "fly" {
   fly_api_token = var.fly_api_token
 }
@@ -38,7 +41,7 @@ provider "dnsimple" {
 
 resource "fly_app" "app" {
   name = var.app_name
-  orgid = var.fly_org
+  org = var.fly_org
 }
 
 resource "fly_ip" "ip" {
@@ -69,8 +72,15 @@ resource "dnsimple_zone_record" "root_hostname" {
   type = "A"
 }
 
+resource "fly_volume" "data" {
+  for_each = toset( var.regions )
+  app = fly_app.app.name
+  region = each.key
+  name = "data"
+  size =  1
+}
 resource "fly_machine" "nginx" {
-  for_each = toset( ["mad", "syd", "iad"] )
+  for_each = toset( var.regions )
   app = fly_app.app.name
   name = "nginx-${each.key}"
   region = each.key
@@ -78,6 +88,16 @@ resource "fly_machine" "nginx" {
   env = {
     MODE = "production"
   }
+  mounts = [
+    {
+      volume = fly_volume.data[each.key].id,
+      path = "/data"
+      # These options have no effect yet
+      encrypted = true
+      size_gb = 1
+    }
+  ]
+
   services = [
     {
       ports = [
