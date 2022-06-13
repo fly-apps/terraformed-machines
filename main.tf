@@ -2,15 +2,27 @@ terraform {
   required_providers {
     fly = {
       source = "fly-apps/fly"
-      version = "0.0.6"
+      version = "0.0.7"
     }
     dnsimple = {
       source = "dnsimple/dnsimple"
       version = "0.11.3"
     }
+    docker = {
+      source = "kreuzwerker/docker"
+      version = "2.16.0"
+    }
   }
 }
 
+provider "docker" {
+  registry_auth {
+    address  = "registry.fly.io"
+    username = "x"
+    password = var.fly_api_token
+  }
+
+}
 variable dnsimple_token {}
 variable dnsimple_account {}
 variable fly_api_token {}
@@ -28,8 +40,9 @@ variable fly_org {
 }
 
 variable regions {
-  default = ["mad", "syd", "iad"]
+  default = ["mad"]
 }
+
 provider "fly" {
   fly_api_token = var.fly_api_token
 }
@@ -79,22 +92,34 @@ resource "fly_volume" "data" {
   name = "data"
   size =  1
 }
+resource "docker_registry_image" "docker_image" {
+  keep_remotely = false
+  name          = "registry.fly.io/${var.app_name}:${formatdate("YYYYMMDDhhmmss",timestamp())}"
+  build {
+    context     = "app"
+    dockerfile  = "Dockerfile"
+    pull_parent = true
+    platform    = "linux/amd64"
+  }
+}
+
+output "image" {
+  value = docker_registry_image.docker_image.name
+}
 resource "fly_machine" "nginx" {
   for_each = toset( var.regions )
   app = fly_app.app.name
-  name = "nginx-${each.key}"
+  name = "nginx-base-${each.key}"
   region = each.key
-  image  = "nginx"
+  image  = docker_registry_image.docker_image.name
+#  image = "nginx"
   env = {
-    MODE = "production"
+   MODE = "production"
   }
   mounts = [
     {
       volume = fly_volume.data[each.key].id,
       path = "/data"
-      # These options have no effect yet
-      encrypted = true
-      size_gb = 1
     }
   ]
 
