@@ -16,3 +16,5 @@ Then run:
 terraform init
 terraform apply -var-file=credentials.tfvars
 ```
+
+Note: the username to authenticate to `registry.fly.io` via the Terraform Docker provider is a literral `x`, not your Fly.io's username or email. The password is a token generated with `flyctl auth token`.
